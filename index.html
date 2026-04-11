@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FRIDAY – Authorized Access Only</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --c1:#00d4ff;--c2:#ff006e;--c3:#8338ec;--cg:#00ff88;
+  --bg0:#030711;--bg1:#0a0e27;--bg2:#141830;
+  --txt:#e2e8f0;--muted:#64748b;
+  --border:rgba(0,212,255,.14);
+  --glow:0 0 24px rgba(0,212,255,.35);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg0)}
+body{font-family:'Exo 2',sans-serif;color:var(--txt);
+  max-width:520px;margin:0 auto;height:100dvh;position:relative}
+
+/* AMBIENT */
+.amb{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.amb-a{position:absolute;top:-20%;right:-15%;width:480px;height:480px;border-radius:50%;
+  background:radial-gradient(circle,rgba(0,212,255,.16) 0%,transparent 70%);
+  filter:blur(55px);animation:ambFloat 9s ease-in-out infinite}
+.amb-b{position:absolute;bottom:-20%;left:-15%;width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,0,110,.12) 0%,transparent 70%);
+  filter:blur(55px);animation:ambFloat 9s ease-in-out 3s infinite reverse}
+@keyframes ambFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-28px)}}
+
+/*══════════════════════════════════════
+  LOCK SCREEN
+══════════════════════════════════════*/
+#lockScreen{
+  position:fixed;inset:0;z-index:200;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 24px;
+  background:linear-gradient(160deg,#030711 0%,#0d0020 50%,#030711 100%);
+  transition:opacity .7s ease,transform .7s ease;
+}
+#lockScreen.unlock-anim{opacity:0;transform:scale(1.1);pointer-events:none}
+
+/* Shield */
+.shield-wrap{position:relative;width:120px;height:120px;margin-bottom:26px}
+.ring1{position:absolute;inset:-20px;border-radius:50%;
+  border:1.5px solid rgba(0,212,255,.22);animation:spin 8s linear infinite}
+.ring1::before{content:'';position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+  width:7px;height:7px;border-radius:50%;
+  background:var(--c1);box-shadow:0 0 14px var(--c1)}
+.ring2{position:absolute;inset:-36px;border-radius:50%;
+  border:1px dashed rgba(255,0,110,.18);animation:spin 18s linear infinite reverse}
+.ring2::before{content:'';position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;
+  background:var(--c2);box-shadow:0 0 10px var(--c2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.shield-icon{
+  width:120px;height:120px;border-radius:50%;
+  background:linear-gradient(160deg,rgba(0,212,255,.1),rgba(131,56,236,.1));
+  border:2px solid rgba(0,212,255,.3);
+  display:flex;align-items:center;justify-content:center;font-size:50px;
+  box-shadow:0 0 50px rgba(0,212,255,.18),inset 0 0 30px rgba(0,212,255,.05);
+  animation:shieldPulse 3s ease-in-out infinite;position:relative;z-index:2;
+}
+@keyframes shieldPulse{
+  0%,100%{box-shadow:0 0 50px rgba(0,212,255,.18),inset 0 0 30px rgba(0,212,255,.05)}
+  50%{box-shadow:0 0 70px rgba(0,212,255,.35),inset 0 0 40px rgba(0,212,255,.1)}}
+.shield-icon.shake{animation:shakeX .5s ease,deniedGlow 1.2s ease forwards}
+@keyframes shakeX{
+  0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}
+  40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+@keyframes deniedGlow{to{border-color:rgba(255,0,110,.5);box-shadow:0 0 50px rgba(255,0,110,.3)}}
+.shield-icon.success-anim{
+  border-color:rgba(0,255,136,.5);
+  box-shadow:0 0 60px rgba(0,255,136,.3);
+  animation:successScale .5s ease;
+}
+@keyframes successScale{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+
+.lock-title{font-size:24px;font-weight:900;letter-spacing:4px;
+  background:linear-gradient(135deg,var(--c1),var(--c3));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.lock-sub{font-size:10px;color:var(--muted);letter-spacing:2.5px;
+  text-transform:uppercase;margin-bottom:30px}
+
+/* Role badge */
+.role-badge{
+  display:none;font-size:12px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;padding:5px 16px;border-radius:20px;margin-bottom:18px;
+  animation:badgePop .3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes badgePop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.role-badge.owner{background:rgba(255,215,0,.1);border:1.5px solid rgba(255,215,0,.45);color:#ffd700}
+.role-badge.admin{background:rgba(0,212,255,.1);border:1.5px solid rgba(0,212,255,.35);color:var(--c1)}
+
+/* Form */
+.lock-form{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px}
+.lf-label{font-size:11px;font-weight:700;color:var(--c1);
+  letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:7px}
+.lf-input{
+  width:100%;background:rgba(20,24,48,.85);
+  border:1.5px solid rgba(0,212,255,.2);border-radius:13px;
+  padding:13px 16px;color:var(--txt);
+  font-family:'Exo 2',sans-serif;font-size:14px;
+  outline:none;transition:border-color .3s,box-shadow .3s;letter-spacing:.5px;
+}
+.lf-input:focus{border-color:var(--c1);box-shadow:0 0 18px rgba(0,212,255,.18)}
+.lf-input.err{border-color:rgba(255,0,110,.6)!important}
+.lf-input::placeholder{color:var(--muted)}
+.lf-err{font-size:12px;color:var(--c2);margin-top:6px;display:none;padding:0 2px}
+.lf-err.show{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+#passGroup{display:none;animation:fadeIn .4s ease}
+.pass-row{position:relative}
+.eye-btn{position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:4px}
+
+.lf-btn{
+  width:100%;padding:14px;border-radius:13px;cursor:pointer;font-size:14px;
+  font-family:'Exo 2',sans-serif;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;
+  background:linear-gradient(135deg,rgba(0,212,255,.28),rgba(131,56,236,.18));
+  border:1.5px solid var(--c1);color:var(--c1);transition:all .3s;
+}
+.lf-btn:hover{background:linear-gradient(135deg,rgba(0,212,255,.42),rgba(131,56,236,.3));
+  box-shadow:var(--glow)}
+.lf-btn:active{transform:scale(.97)}
+.lf-btn:disabled{opacity:.35;cursor:default}
+
+.lock-footer{margin-top:24px;font-size:11px;color:rgba(100,116,139,.6);
+  text-align:center;letter-spacing:.5px;line-height:1.9}
+
+/*══════════════════════════════════════
+  FRIDAY APP
+══════════════════════════════════════*/
+#fridayApp{
+  display:none;flex-direction:column;height:100dvh;position:relative;z-index:10;
+  opacity:0;transition:opacity .5s ease;
+}
+#fridayApp.visible{display:flex}
+#fridayApp.fadein{opacity:1}
+
+header{
+  position:relative;z-index:20;padding:12px 16px;
+  background:rgba(3,7,17,.82);backdrop-filter:blur(28px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-dot{width:9px;height:9px;border-radius:50%;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  box-shadow:0 0 14px rgba(0,212,255,.8);animation:dotPulse 2s ease-in-out infinite}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.logo-text{font-size:18px;font-weight:800;letter-spacing:3px;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-right{display:flex;align-items:center;gap:7px}
+.user-chip{display:flex;align-items:center;gap:5px;
+  padding:4px 10px 4px 6px;border-radius:20px;
+  background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);font-size:11px}
+.user-chip .ue{color:var(--c1);font-weight:700;
+  max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdr-btn{width:34px;height:34px;border-radius:9px;cursor:pointer;
+  border:1.5px solid var(--border);background:rgba(0,212,255,.07);
+  color:var(--c1);font-size:15px;display:flex;align-items:center;
+  justify-content:center;transition:all .25s}
+.hdr-btn:hover{background:rgba(0,212,255,.18);border-color:var(--c1)}
+
+.orb-wrap{flex-shrink:0;display:flex;flex-direction:column;
+  align-items:center;padding:14px 0 6px;z-index:10;position:relative}
+#orbCanvas{display:block}
+.orb-status{font-size:11px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);margin-top:-4px;transition:color .4s}
+.orb-status.active{color:var(--c1);text-shadow:0 0 12px rgba(0,212,255,.5)}
+
+.msgs-wrap{flex:1;overflow-y:auto;padding:10px 14px 6px;
+  display:flex;flex-direction:column;gap:10px;z-index:10;position:relative}
+.msgs-wrap::-webkit-scrollbar{width:4px}
+.msgs-wrap::-webkit-scrollbar-thumb{background:rgba(0,212,255,.2);border-radius:2px}
+
+.msg{display:flex;animation:msgIn .32s cubic-bezier(.4,0,.2,1)}
+.msg.user{justify-content:flex-end}.msg.ai{justify-content:flex-start}
+.bubble{max-width:83%;padding:11px 15px;font-size:14px;line-height:1.65;
+  white-space:pre-wrap;word-break:break-word;backdrop-filter:blur(12px)}
+.msg.user .bubble{
+  background:linear-gradient(135deg,rgba(0,212,255,.22),rgba(0,212,255,.08));
+  border:1px solid rgba(0,212,255,.5);border-radius:18px 18px 4px 18px;
+  box-shadow:0 6px 20px rgba(0,212,255,.1)}
+.msg.ai .bubble{background:rgba(20,24,48,.9);border:1px solid rgba(0,212,255,.15);
+  border-radius:18px 18px 18px 4px;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.95)}
+  to{opacity:1;transform:translateY(0) scale(1)}}
+
+.typing{display:flex;gap:7px;align-items:center;padding:4px 2px}
+.td{width:8px;height:8px;border-radius:50%;background:var(--c1);
+  box-shadow:0 0 8px rgba(0,212,255,.6);animation:tdBounce 1.4s ease-in-out infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes tdBounce{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-8px)}}
+
+.input-bar{flex-shrink:0;z-index:20;position:relative;
+  padding:10px 12px;background:rgba(3,7,17,.85);
+  backdrop-filter:blur(28px);border-top:1px solid var(--border);
+  display:flex;gap:9px;align-items:center}
+#msgInput{flex:1;background:rgba(20,24,48,.8);
+  border:1.5px solid rgba(0,212,255,.22);border-radius:13px;
+  padding:12px 14px;color:var(--txt);font-family:'Exo 2',sans-serif;
+  font-size:14px;outline:none;resize:none;max-height:100px;
+  transition:border-color .3s;line-height:1.4}
+#msgInput:focus{border-color:rgba(0,212,255,.7);box-shadow:0 0 16px rgba(0,212,255,.2)}
+#msgInput::placeholder{color:var(--muted)}
+.ibar-btn{width:44px;height:44px;border-radius:12px;cursor:pointer;font-size:20px;
+  border:1.5px solid;display:flex;align-items:center;justify-content:center;
+  transition:all .25s;flex-shrink:0}
+#micBtn{border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.09);color:var(--c1)}
+#micBtn.listening{border-color:var(--c2);background:rgba(255,0,110,.2);color:var(--c2);
+  animation:micPulse .8s ease-in-out infinite}
+#micBtn.speaking{border-color:var(--c3);background:rgba(131,56,236,.2);color:var(--c3)}
+@keyframes micPulse{0%,100%{box-shadow:none}50%{box-shadow:0 0 18px rgba(255,0,110,.5)}}
+#sendBtn{border-color:rgba(0,212,255,.35);
+  background:linear-gradient(135deg,rgba(0,212,255,.25),rgba(0,212,255,.08));color:var(--c1)}
+#sendBtn:disabled{opacity:.35;cursor:default}
+
+/* Settings Modal */
+.modal-bg{display:none;position:fixed;inset:0;z-index:150;
+  background:rgba(3,7,17,.92);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:20px;padding:26px;width:100%;max-width:400px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6);animation:modalIn .3s ease-out;
+  max-height:90vh;overflow-y:auto}
+@keyframes modalIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+.modal h2{font-size:18px;font-weight:800;letter-spacing:2px;margin-bottom:16px;
+  background:linear-gradient(135deg,var(--c1),var(--c2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal label{font-size:11px;font-weight:700;color:var(--c1);
+  text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:7px}
+.modal input{width:100%;background:rgba(3,7,17,.7);
+  border:1.5px solid rgba(0,212,255,.25);border-radius:12px;
+  padding:12px 14px;color:var(--txt);font-family:'JetBrains Mono',monospace;
+  font-size:13px;outline:none;margin-bottom:14px}
+.modal input:focus{border-color:var(--c1)}
+.modal input::placeholder{color:var(--muted)}
+.modal-btns{display:flex;gap:10px}
+.btn-p{flex:1;padding:12px;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,rgba(0,212,255,.26),rgba(0,212,255,.08));
+  border:1.5px solid var(--c1);color:var(--c1);
+  font-family:'Exo 2',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:1px;transition:all .25s}
+.btn-p:hover{box-shadow:var(--glow)}
+.btn-s{padding:12px 16px;border-radius:12px;cursor:pointer;
+  background:transparent;border:1.5px solid var(--border);
+  color:var(--muted);font-family:'Exo 2',sans-serif;font-size:13px;transition:all .25s}
+.btn-s:hover{border-color:var(--muted);color:var(--txt)}
+.mdivider{height:1px;background:var(--border);margin:18px 0}
+.kbadge{font-size:11px;font-weight:700;letter-spacing:.5px;
+  padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:14px}
+.kbadge.ok{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.4);color:#00ff88}
+.kbadge.no{background:rgba(255,0,110,.1);border:1px solid rgba(255,0,110,.4);color:var(--c2)}
+.owner-box{display:none}
+.owner-box.show{display:block}
+.owner-note{font-size:12px;color:rgba(255,215,0,.8);line-height:1.6;
+  padding:10px 12px;background:rgba(255,215,0,.05);
+  border:1px solid rgba(255,215,0,.15);border-radius:10px;margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div class="amb"><div class="amb-a"></div><div class="amb-b"></div></div>
+
+<!--══ LOCK SCREEN ══-->
+<div id="lockScreen">
+  <div class="shield-wrap">
+    <div class="ring1"></div>
+    <div class="ring2"></div>
+    <div class="shield-icon" id="shieldIcon">🛡️</div>
+  </div>
+
+  <div class="lock-title">FRIDAY</div>
+  <div class="lock-sub">Authorized Access Only</div>
+
+  <div class="role-badge" id="roleBadge"></div>
+
+  <div class="lock-form">
+    <div>
+      <label class="lf-label">Gmail Address</label>
+      <input class="lf-input" type="email" id="lockEmail"
+        placeholder="yourname@gmail.com" autocapitalize="none" autocomplete="email">
+      <div class="lf-err" id="emailErr"></div>
+    </div>
+
+    <div id="passGroup">
+      <label class="lf-label">Password</label>
+      <div class="pass-row">
+        <input class="lf-input" type="password" id="lockPass"
+          placeholder="Enter password" autocomplete="current-password">
+        <button class="eye-btn" id="eyeBtn" onclick="toggleEye()">👁️</button>
+      </div>
+      <div class="lf-err" id="passErr"></div>
+    </div>
+
+    <button class="lf-btn" id="lockBtn" onclick="handleLock()">CONTINUE →</button>
+  </div>
+
+  <div class="lock-footer">
+    🔒 FRIDAY v2.0 &nbsp;·&nbsp; Restricted System<br>
+    Unauthorized access is prohibited
+  </div>
+</div>
+
+<!--══ FRIDAY APP ══-->
+<div id="fridayApp">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-text">FRIDAY</span>
+    </div>
+    <div class="hdr-right">
+      <div class="user-chip">
+        <span id="hRoleEmoji">👤</span>
+        <span class="ue" id="hEmail">—</span>
+      </div>
+      <button class="hdr-btn" onclick="openSettings()">⚙️</button>
+      <button class="hdr-btn" onclick="doLogout()">🔓</button>
+    </div>
+  </header>
+
+  <div class="orb-wrap">
+    <canvas id="orbCanvas" width="200" height="200" style="width:180px;height:180px"></canvas>
+    <div class="orb-status" id="orbStatus">● READY</div>
+  </div>
+
+  <div class="msgs-wrap" id="msgs"></div>
+
+  <div class="input-bar">
+    <textarea id="msgInput" rows="1" placeholder="Type or speak your command…"></textarea>
+    <button class="ibar-btn" id="micBtn">🎤</button>
+    <button class="ibar-btn" id="sendBtn" disabled>➤</button>
+  </div>
+</div>
+
+<!--══ SETTINGS MODAL ══-->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2>⚙️ SETTINGS</h2>
+
+    <label>🆓 Groq API Key (Free)</label>
+    <div style="font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.6">
+      Free key lene ke liye:<br>
+      <span style="color:#00d4ff">console.groq.com</span> → Sign up → API Keys → Create key
+    </div>
+    <span id="kBadge" class="kbadge no">NOT SET</span>
+    <input type="password" id="keyInput" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off">
+    <div class="modal-btns" style="margin-bottom:0">
+      <button class="btn-p" onclick="saveKey()">💾 SAVE KEY</button>
+      <button class="btn-s" onclick="closeSettings()">Cancel</button>
+    </div>
+
+    <div class="mdivider"></div>
+
+    <label>🎙️ ElevenLabs API Key <span style="color:#00ff88;font-size:10px">(Rachel Voice — Free 10k chars/mo)</span></label>
+    <div style="font-size:11px;color:#64748b;margin-bottom:8px;line-height:1.6">
+      Free key: <span style="color:#00d4ff">elevenlabs.io</span> → Sign up → Profile → API Key
+    </div>
+    <span id="elBadge" class="kbadge no">NOT SET — Using Browser Voice</span>
+    <input type="password" id="elKeyInput" placeholder="your_elevenlabs_api_key" autocomplete="off">
+    <div class="modal-btns" style="margin-bottom:0">
+      <button class="btn-p" onclick="saveElKey()">🎙️ SAVE VOICE KEY</button>
+      <button class="btn-s" onclick="clearElKey()">Remove</button>
+    </div>
+
+    <div class="mdivider"></div>
+    <div class="owner-box" id="ownerBox">
+      <div class="owner-note">
+        👑 OWNER CONTROLS — Only <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8defe5ece9e2f8ffe4ecf4ecfee5b5babbcdeae0ece4e1a3eee2e0">[email&#160;protected]</a> can see this
+      </div>
+      <label>New App Password</label>
+      <input type="password" id="np1" placeholder="New password (min 6 chars)">
+      <label>Confirm Password</label>
+      <input type="password" id="np2" placeholder="Re-enter new password">
+      <button class="btn-p" style="width:100%;margin-top:-4px" onclick="changePass()">
+        🔑 UPDATE PASSWORD
+      </button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+/*════ ACCESS CONFIG ════*/
+const ALLOWED = {
+  'bhadouriayash876@gmail.com': {role:'OWNER', emoji:'👑'},
+  'ashish16works@gmail.com':    {role:'ADMIN', emoji:'🔐'},
+  'dopestorern@gmail.com':      {role:'ADMIN', emoji:'🔐'}
+};
+const DEFAULT_PASS  = 'friday@2024';
+const SESSION_DAYS  = 7;
+
+/*════ CRYPTO ════*/
+async function h256(s){
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function verifyPass(input){
+  let stored = localStorage.getItem('fri_ph');
+  if(!stored){
+    stored = await h256(DEFAULT_PASS);
+    localStorage.setItem('fri_ph', stored);
+  }
+  return await h256(input) === stored;
+}
+
+/*════ SESSION ════*/
+function saveSession(email){
+  localStorage.setItem('fri_sess', JSON.stringify({email,t:Date.now()}));
+}
+function getSession(){
+  try{
+    const s = JSON.parse(localStorage.getItem('fri_sess')||'null');
+    if(!s||!ALLOWED[s.email]) return null;
+    if(Date.now()-s.t > SESSION_DAYS*86400000){localStorage.removeItem('fri_sess');return null;}
+    return s;
+  }catch{return null;}
+}
+
+/*════ LOCK UI STATE ════*/
+let lockStep  = 'email';
+let lockedEmail = '';
+
+function handleLock(){
+  lockStep==='email' ? doEmailCheck() : doPassCheck();
+}
+
+// Enter key
+document.getElementById('lockEmail').addEventListener('keydown',e=>e.key==='Enter'&&doEmailCheck());
+document.getElementById('lockPass') .addEventListener('keydown',e=>e.key==='Enter'&&doPassCheck());
+
+function doEmailCheck(){
+  const email = document.getElementById('lockEmail').value.trim().toLowerCase();
+  clearErr('lockEmail','emailErr');
+
+  if(!email)                    { showErr('lockEmail','emailErr','Email daalo!'); return; }
+  if(!email.endsWith('@gmail.com')){ showErr('lockEmail','emailErr','Sirf Gmail allowed hai'); return; }
+
+  if(!ALLOWED[email]){
+    // DENIED
+    setShield('🚫','shake');
+    showErr('lockEmail','emailErr','⛔ Access Denied — Yeh account authorized nahi hai');
+    document.getElementById('roleBadge').style.display='none';
+    setTimeout(()=>setShield('🛡️',''),2000);
+    return;
+  }
+
+  // VALID — show password step
+  clearErr('lockEmail','emailErr');
+  lockedEmail = email;
+  const info  = ALLOWED[email];
+  const badge = document.getElementById('roleBadge');
+  badge.textContent = info.emoji+' '+info.role+' ACCESS';
+  badge.className   = 'role-badge '+(info.role==='OWNER'?'owner':'admin');
+  badge.style.display='block';
+
+  document.getElementById('passGroup').style.display='block';
+  document.getElementById('lockEmail').disabled=true;
+  document.getElementById('lockBtn').textContent='🔓 UNLOCK →';
+  lockStep='password';
+  setTimeout(()=>document.getElementById('lockPass').focus(),80);
+}
+
+async function doPassCheck(){
+  const pass = document.getElementById('lockPass').value;
+  if(!pass){ showErr('lockPass','passErr','Password daalo!'); return; }
+
+  const btn=document.getElementById('lockBtn');
+  btn.disabled=true; btn.textContent='⏳ Verifying…';
+
+  const ok = await verifyPass(pass);
+  if(!ok){
+    btn.disabled=false; btn.textContent='🔓 UNLOCK →';
+    setShield('❌','shake');
+    showErr('lockPass','passErr','❌ Galat password!');
+    document.getElementById('lockPass').value='';
+    setTimeout(()=>setShield('🛡️',''),1600);
+    return;
+  }
+
+  // SUCCESS
+  setShield('✅','success-anim');
+  btn.textContent='✅ ACCESS GRANTED';
+  saveSession(lockedEmail);
+  setTimeout(()=>launchApp(lockedEmail),700);
+}
+
+function setShield(icon,cls){
+  const el=document.getElementById('shieldIcon');
+  el.textContent=icon;
+  el.className='shield-icon'+(cls?' '+cls:'');
+}
+function showErr(inputId,errId,msg){
+  document.getElementById(inputId).classList.add('err');
+  const e=document.getElementById(errId);e.textContent=msg;e.classList.add('show');
+}
+function clearErr(inputId,errId){
+  document.getElementById(inputId).classList.remove('err');
+  document.getElementById(errId).classList.remove('show');
+}
+function toggleEye(){
+  const i=document.getElementById('lockPass');
+  i.type=i.type==='password'?'text':'password';
+  document.getElementById('eyeBtn').textContent=i.type==='password'?'👁️':'🙈';
+}
+
+/*════ LAUNCH APP ════*/
+function launchApp(email){
+  const info=ALLOWED[email];
+  document.getElementById('hEmail').textContent    = email.split('@')[0];
+  document.getElementById('hRoleEmoji').textContent= info.emoji;
+  if(info.role==='OWNER') document.getElementById('ownerBox').classList.add('show');
+
+  const ls=document.getElementById('lockScreen');
+  ls.classList.add('unlock-anim');
+  const app=document.getElementById('fridayApp');
+  app.classList.add('visible');
+  setTimeout(()=>{
+    app.classList.add('fadein');
+    ls.style.display='none';
+    bootFriday(email,info);
+  },650);
+}
+
+function doLogout(){
+  if(!confirm('Logout karna chahte ho?')) return;
+  localStorage.removeItem('fri_sess');
+  location.reload();
+}
+
+/*════ CHANGE PASSWORD (Owner only) ════*/
+async function changePass(){
+  const p1=document.getElementById('np1').value;
+  const p2=document.getElementById('np2').value;
+  if(!p1||p1.length<6){alert('Min 6 characters chahiye!');return;}
+  if(p1!==p2){alert('Passwords match nahi!');return;}
+  localStorage.setItem('fri_ph',await h256(p1));
+  document.getElementById('np1').value='';
+  document.getElementById('np2').value='';
+  alert('✅ Password change ho gaya! Yaad rakhna: '+p1);
+}
+
+/*════ PINK ORB ════*/
+let isLoading=false,isSpeaking=false,isListening=false;
+function initOrb(){
+  const cv=document.getElementById('orbCanvas');
+  if(!cv)return;
+  const ctx=cv.getContext('2d'),S=200;
+  let t=0;
+  (function draw(){
+    ctx.clearRect(0,0,S,S);
+    const act=isLoading||isSpeaking||isListening,N=30;
+    for(let i=0;i<N;i++){
+      const ph=(i/N)*Math.PI*2,amp=act?20:7;
+      const hue=282+Math.sin(t*.38+ph)*38;
+      const lit=58+(act?Math.sin(t*3.2+ph)*14:0);
+      const alp=act?(.16+.52*Math.abs(Math.sin(t*2.1+ph))):(.07+(i/N)*.32);
+      ctx.beginPath();
+      ctx.strokeStyle=`hsla(${hue},100%,${lit}%,${alp})`;
+      ctx.lineWidth=act?1.25:.85;
+      for(let a=0;a<=Math.PI*2+.05;a+=.032){
+        const r=73+amp*Math.sin(a*4+t*2.6+ph)+(act?amp*.44*Math.sin(a*7-t*1.85+ph):0);
+        const px=S/2+r*Math.cos(a+t*.43+ph*.17);
+        const py=S/2+r*.83*Math.sin(a+t*.43+ph*.17);
+        a<=.032?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      }
+      ctx.closePath();ctx.stroke();
+    }
+    if(act){
+      const g=ctx.createRadialGradient(S/2,S/2,0,S/2,S/2,46);
+      g.addColorStop(0,`hsla(300,100%,70%,${.07+.1*Math.sin(t*3)})`);
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(S/2,S/2,46,0,Math.PI*2);ctx.fill();
+    }
+    t+=act?.036:.007;
+    requestAnimationFrame(draw);
+  })();
+}
+
+/*════ FRIDAY BOOT ════*/
+let apiKey=localStorage.getItem('fri_key')||'';
+let chatHist=[];
+const synth=window.speechSynthesis;
+let rec=null;
+
+function bootFriday(email,info){
+  initOrb(); updateKBadge(); updateElBadge();
+  addMsg('assistant',
+    `${info.emoji} Welcome, ${email.split('@')[0]}! You're logged in as ${info.role}.\n\n`+
+    `🎙️ Voice Commands Available!\n`+
+    `✨ "Build me a school management system" → Full code ready\n`+
+    `📰 "What's happening in the world" → Latest news\n`+
+    `💬 Ask me anything — I'm ready!`
+  );
+
+  if(!apiKey) openSettings();
+
+  // Voice recognition
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';
+    rec.onstart=()=>{isListening=true;setMic('listening');setStatus('🎙️ LISTENING…',true)};
+    rec.onend=()=>{isListening=false;setMic('idle');if(!isLoading&&!isSpeaking)setStatus('● READY',false)};
+    rec.onerror=()=>{isListening=false;setMic('idle');setStatus('● READY',false)};
+    rec.onresult=(e)=>{
+      let fin='',inter='';
+      for(const r of e.results){if(r.isFinal)fin+=r[0].transcript;else inter+=r[0].transcript}
+      document.getElementById('msgInput').value=fin||inter;autoResize();
+      document.getElementById('sendBtn').disabled=false;
+      if(e.results[e.results.length-1].isFinal&&fin)setTimeout(()=>send(fin),320);
+    };
+  }else document.getElementById('micBtn').style.opacity='.4';
+
+  document.getElementById('micBtn').addEventListener('click',()=>{
+    if(!rec){alert('Voice not supported');return}
+    if(isSpeaking){stopSpeak();return}
+    isListening?rec.stop():rec.start();
+  });
+  document.getElementById('sendBtn').addEventListener('click',()=>send());
+  document.getElementById('msgInput').addEventListener('input',function(){
+    autoResize();document.getElementById('sendBtn').disabled=!this.value.trim();
+  });
+  document.getElementById('msgInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
+  });
+}
+
+/*════ SEND TO GROQ (Free AI) ════*/
+async function send(text){
+  text=(text||document.getElementById('msgInput').value).trim();
+  if(!text||isLoading)return;
+  document.getElementById('msgInput').value='';autoResize();
+  if(!apiKey){addMsg('assistant','⚠️ Groq API key set nahi! ⚙️ mein daalo.\n\n🆓 Free key: console.groq.com pe jaao → API Keys → Create');openSettings();return}
+  addMsg('user',text);
+  isLoading=true;document.getElementById('sendBtn').disabled=true;
+  setStatus('⚡ THINKING…',true);showTyping();
+  try{
+    const msgs=[
+      {role:'system',content:`You are FRIDAY, an advanced AI assistant created by Yash Bhadouria. 
+
+LANGUAGE: Always respond in English by default. Only switch to Hindi/Hinglish if the user explicitly writes in Hindi.
+
+CAPABILITIES - When users ask you to BUILD or CREATE something:
+- Provide complete, working HTML/CSS/JavaScript code
+- For data management systems: include full CRUD (add, edit, delete, search), local storage, tables, forms
+- For school systems: include student records, marks, attendance, reports
+- Always give the COMPLETE code in a single HTML file, ready to use
+- After giving code, briefly explain how to use it
+
+PERSONALITY: Be concise, friendly, and professional. Get straight to the point.
+Always provide complete solutions, never partial or placeholder code.`},
+      ...chatHist.slice(-20).filter(m=>m.role!=='system').map(m=>({role:m.role,content:m.content}))
+    ];
+    const r=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+apiKey
+      },
+      body:JSON.stringify({
+        model:'llama-3.3-70b-versatile',
+        max_tokens:1024,
+        messages:msgs
+      })
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e?.error?.message||`HTTP ${r.status}`)}
+    const d=await r.json();
+    const reply=d.choices?.[0]?.message?.content||'No response.';
+    hideTyping();addMsg('assistant',reply);speakText(reply);
+  }catch(e){
+    hideTyping();
+    addMsg('assistant','❌ Error: '+e.message
+      +(e.message.includes('401')||e.message.includes('403')?'\n→ API key galat hai. console.groq.com se naya lo.':'')
+      +(e.message.includes('Failed')||e.message.includes('fetch')?'\n→ Internet check karo ya Vercel pe deploy karo (CORS issue).':''));
+    setStatus('● READY',false);
+  }finally{
+    isLoading=false;
+    document.getElementById('sendBtn').disabled=!document.getElementById('msgInput').value.trim();
+    if(!isSpeaking)setStatus('● READY',false);
+  }
+}
+
+/*════ MESSAGE UI ════*/
+function addMsg(role,text){
+  chatHist.push({role,content:text});
+  const w=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg '+(role==='user'?'user':'ai');
+  const b=document.createElement('div');b.className='bubble';b.textContent=text;
+  d.appendChild(b);w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function showTyping(){
+  const w=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg ai';d.id='typDiv';
+  d.innerHTML='<div class="bubble"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';
+  w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function hideTyping(){document.getElementById('typDiv')?.remove()}
+
+/*════ TTS — ElevenLabs Rachel + Web Speech fallback ════*/
+let elevenKey=localStorage.getItem('fri_elkey')||'';
+const RACHEL_ID='21m00Tcm4TlvDq8ikWAM';
+
+// Pre-load web voices immediately to avoid delay
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+}
+
+function getBestVoice(){
+  const vs=synth.getVoices();
+  return vs.find(v=>v.name==='Google US English')||
+         vs.find(v=>v.name.includes('Google')&&v.lang==='en-US'&&v.name.toLowerCase().includes('female'))||
+         vs.find(v=>v.name.includes('Google')&&v.lang==='en-US')||
+         vs.find(v=>v.lang==='en-US')||
+         vs.find(v=>v.lang.startsWith('en'))||vs[0];
+}
+
+async function speakElevenLabs(text){
+  try{
+    const r=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${RACHEL_ID}/stream`,{
+      method:'POST',
+      headers:{'xi-api-key':elevenKey,'Content-Type':'application/json'},
+      body:JSON.stringify({
+        text,
+        model_id:'eleven_turbo_v2',
+        voice_settings:{stability:0.5,similarity_boost:0.75,style:0.3,use_speaker_boost:true}
+      })
+    });
+    if(!r.ok)throw new Error('EL failed');
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const audio=new Audio(url);
+    audio.onended=()=>{URL.revokeObjectURL(url);isSpeaking=false;setMic('idle');setStatus('● READY',false)};
+    audio.onerror=()=>{isSpeaking=false;setMic('idle');setStatus('● READY',false)};
+    audio.play();
+  }catch(e){
+    speakWebSpeech(text); // fallback
+  }
+}
+
+function speakWebSpeech(text){
+  synth.cancel();
+  const clean=text.replace(/```[\s\S]*?```/g,'').replace(/[#*`_~]/g,'').trim();
+  if(!clean){isSpeaking=false;setMic('idle');setStatus('● READY',false);return}
+  const u=new SpeechSynthesisUtterance(clean);
+  const v=getBestVoice();
+  if(v)u.voice=v;
+  u.rate=1.0;u.pitch=1.05;u.volume=1;
+  u.onend=u.onerror=()=>{isSpeaking=false;setMic('idle');setStatus('● READY',false)};
+  synth.speak(u);
+}
+
+function speakText(text){
+  if(!synth&&!elevenKey)return;
+  if(synth)synth.cancel();
+  isSpeaking=true;setMic('speaking');setStatus('🔊 SPEAKING…',true);
+  const clean=text.replace(/```[\s\S]*?```/g,'Code generated.').replace(/[#*`_~]/g,'').trim();
+  if(elevenKey){speakElevenLabs(clean)}
+  else{speakWebSpeech(clean)}
+}
+
+function stopSpeak(){
+  synth?.cancel();isSpeaking=false;setMic('idle');setStatus('● READY',false);
+}
+
+/*════ UI HELPERS ════*/
+function setStatus(txt,act){
+  const el=document.getElementById('orbStatus');
+  el.textContent=txt;el.className='orb-status'+(act?' active':'');
+}
+function setMic(s){
+  const b=document.getElementById('micBtn');b.className='ibar-btn';
+  if(s==='listening'){b.classList.add('listening');b.textContent='⏹️'}
+  else if(s==='speaking'){b.classList.add('speaking');b.textContent='🔊'}
+  else b.textContent='🎤';
+}
+function autoResize(){
+  const el=document.getElementById('msgInput');
+  el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';
+}
+
+/*════ SETTINGS ════*/
+function openSettings(){document.getElementById('modalBg').classList.add('show')}
+function closeSettings(){document.getElementById('modalBg').classList.remove('show')}
+function saveKey(){
+  const v=document.getElementById('keyInput').value.trim();
+  if(!v){alert('API key daalo!');return}
+  if(!v.startsWith('gsk_')){alert('Groq key "gsk_" se shuru hoti hai!\nconsole.groq.com se lo.');return}
+  apiKey=v;localStorage.setItem('fri_key',v);
+  document.getElementById('keyInput').value='';
+  closeSettings();updateKBadge();
+  addMsg('assistant','✅ Groq API key save! Ab baat karte hain 😊');
+}
+function saveElKey(){
+  const v=document.getElementById('elKeyInput').value.trim();
+  if(!v){alert('ElevenLabs key daalo!');return}
+  elevenKey=v;localStorage.setItem('fri_elkey',v);
+  document.getElementById('elKeyInput').value='';
+  updateElBadge();closeSettings();
+  addMsg('assistant','✅ Rachel voice activated! 🎙️ Now speaking with ElevenLabs.');
+}
+function clearElKey(){
+  elevenKey='';localStorage.removeItem('fri_elkey');
+  updateElBadge();
+  addMsg('assistant','🔇 Switched back to browser voice.');
+}
+function updateElBadge(){
+  const el=document.getElementById('elBadge');
+  if(!el)return;
+  if(elevenKey){el.textContent='✓ Rachel (ElevenLabs) ACTIVE';el.className='kbadge ok'}
+  else{el.textContent='NOT SET — Using Browser Voice';el.className='kbadge no'}
+}
+function updateKBadge(){
+  const el=document.getElementById('kBadge');
+  if(apiKey){el.textContent='✓ CONNECTED';el.className='kbadge ok'}
+  else{el.textContent='NOT SET';el.className='kbadge no'}
+}
+
+/*════ AUTO SESSION CHECK ════*/
+(function(){
+  const s=getSession();
+  if(s){launchApp(s.email);}
+})();
+</script>
+</body>
+</html>
