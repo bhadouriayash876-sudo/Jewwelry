@@ -1,5 +1,8 @@
 <?php
+require '../auth.php';
 require '../config.php';
+
+requireAdmin(); // Only admin can delete
 
 try {
     $data = json_decode(file_get_contents('php://input'), true);

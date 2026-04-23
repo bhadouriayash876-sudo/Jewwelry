@@ -1,5 +1,8 @@
 <?php
+require '../auth.php';
 require '../config.php';
+
+requireAdminOrOwner();
 
 try {
     $id = $_GET['id'] ?? null;

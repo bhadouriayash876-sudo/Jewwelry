@@ -1,5 +1,8 @@
 <?php
+require '../auth.php';
 require '../config.php';
+
+requireAdminOrOwner();
 
 try {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -20,8 +23,8 @@ try {
     // Generate QR code
     $qr_text = BASE_URL . 'verify.php?cert_id=' . urlencode($card['cert_number']);
     
-    $stmt = $db->prepare('UPDATE cards SET status = ?, qr_code = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-    $stmt->execute(['published', $qr_text, $id]);
+    $stmt = $db->prepare('UPDATE cards SET status = ?, qr_code = ?, published_at = CURRENT_TIMESTAMP, published_by = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+    $stmt->execute(['published', $qr_text, getUsername(), $id]);
     
     // Fetch updated card
     $stmt = $db->prepare('SELECT * FROM cards WHERE id = ?');
